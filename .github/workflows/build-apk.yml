@@ -11,6 +11,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Locate index.html
+        run: |
+          echo "Files in repo:"
+          find . -type f -not -path './.git/*' | head -50
+          SRC=$(find . -type f -iname 'index*' -not -path './.git/*' -not -path './.github/*' | head -1)
+          if [ -z "$SRC" ]; then
+            echo "::error::No index.html found anywhere in the repo. Check the file list above."
+            exit 1
+          fi
+          echo "Using: $SRC"
+          mkdir -p www
+          cp "$SRC" www/index.html
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -24,8 +37,6 @@ jobs:
         run: |
           npm init -y
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
-          mkdir www
-          cp index.html www/index.html
           npx cap init "Night Shift" com.nightshift.game --web-dir www
           npx cap add android
           npx cap sync android
