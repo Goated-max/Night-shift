@@ -1,0 +1,185 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Night Shift</title>
+<style>
+body{--bg:#2b3a5e;--fg:#e6dcc3;--ca:rgba(230,220,195,.09);--sh:#121a30}
+body.day{--bg:#e6dcc3;--fg:#2b3a5e;--ca:rgba(43,58,94,.09)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--fg);font:17px/1.4 "Nunito","Segoe UI",Roboto,system-ui,sans-serif;transition:background .6s,color .6s;overflow-x:hidden}
+#bg{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+#bg::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% 0%,rgba(255,255,255,.08),transparent 55%),radial-gradient(circle at 50% 120%,rgba(0,0,0,.45),transparent 65%)}
+#bg i{position:absolute;border-radius:50%;background:var(--fg);opacity:.06;animation:drift 9s ease-in-out infinite;transition:background .6s}
+#bg i:nth-child(even){background:none;border:6px solid var(--fg);opacity:.09;animation-duration:12s}
+#app{position:relative;z-index:1;min-height:100vh;padding:max(20px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-width:480px;margin:auto}
+h1,h2,.big{margin:0;font-weight:900;letter-spacing:-.5px}h1{font-size:42px;line-height:1}h2{font-size:27px;line-height:1.15}
+p{margin:0;opacity:.85}
+.card{background:var(--ca);border:2px solid var(--fg);border-radius:20px;padding:16px;backdrop-filter:blur(4px)}
+button{font:inherit;font-weight:800;border:2px solid var(--fg);border-radius:16px;padding:14px 16px;background:var(--ca);color:var(--fg);width:100%;box-shadow:0 5px 0 var(--sh);transition:transform .12s,box-shadow .12s,background .2s,color .2s}
+button:active{transform:translateY(5px) scale(.98);box-shadow:0 0 0 var(--sh)}
+button.main{background:var(--fg);color:var(--bg);font-size:19px}
+button.sel{background:var(--fg);color:var(--bg)}
+button:disabled{opacity:.4}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between}.row button{width:auto;padding:8px 14px}#add{padding:14px 20px}
+#bk{width:auto;align-self:flex-start;padding:8px 14px}
+input{flex:1;font:inherit;font-weight:700;padding:14px;border-radius:16px;border:2px solid var(--fg);background:var(--ca);color:var(--fg);min-width:0;outline:0}input::placeholder{color:var(--fg);opacity:.55}
+.big{font-size:46px;text-align:center}.big.bad{background:var(--fg);color:var(--bg);border-radius:22px;padding:.1em .5em;align-self:center}
+.row .bad{text-decoration:underline wavy}.c{text-align:center}.sp{flex:1}.chips{display:flex;gap:8px;margin-top:10px}.chips button{flex:1;width:auto;padding:10px 0}small{display:block;font-size:14px;opacity:.75;line-height:1.3}
+#app>*{animation:pop .5s cubic-bezier(.2,.9,.3,1.25) backwards;animation-delay:calc(var(--i)*55ms)}
+#app>.big{animation:stamp .6s cubic-bezier(.2,1.3,.4,1) backwards;animation-delay:calc(var(--i)*55ms)}
+#app>.moon{width:150px;margin:0 auto;animation:float 4s ease-in-out infinite}
+#app>.pulse{animation:pop .5s cubic-bezier(.2,.9,.3,1.25) backwards,pulse 1.8s ease-in-out .6s infinite}
+#app.q>*{animation:none}#app.q>button.sel{animation:bump .3s}
+#app.out>*{animation:out .2s ease-in forwards}
+.logo{text-align:center;font-size:54px;line-height:.95}.logo b{display:inline-block;animation:drop .7s cubic-bezier(.3,1.4,.5,1) backwards;animation-delay:calc(var(--d) + .25s)}
+.star{animation:twinkle 1.6s ease-in-out infinite}.star:nth-of-type(2){animation-delay:.5s}.star:nth-of-type(3){animation-delay:1s}
+.cf{position:fixed;top:-24px;width:10px;height:16px;border-radius:3px;z-index:5;pointer-events:none;animation:fall linear infinite}
+@keyframes pop{from{opacity:0;transform:translateY(28px) scale(.94)}}
+@keyframes out{to{opacity:0;transform:translateY(-20px) scale(.95)}}
+@keyframes stamp{from{opacity:0;transform:scale(2.4) rotate(-8deg)}60%{transform:scale(.92) rotate(2deg)}}
+@keyframes bump{50%{transform:scale(1.05)}}
+@keyframes drop{from{opacity:0;transform:translateY(-50px) rotate(-14deg)}}
+@keyframes float{50%{transform:translateY(-12px) rotate(4deg)}}
+@keyframes pulse{50%{transform:scale(1.04)}}
+@keyframes twinkle{50%{opacity:.25}}
+@keyframes drift{50%{transform:translate(22px,-34px) scale(1.08)}}
+@keyframes fall{to{transform:translateY(112vh) rotate(540deg)}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style></head><body><div id="bg"><i style="width:260px;height:260px;left:-90px;top:6%"></i><i style="width:170px;height:170px;right:-50px;top:30%"></i><i style="width:120px;height:120px;left:12%;bottom:18%"></i><i style="width:220px;height:220px;right:-80px;bottom:-60px"></i><i style="width:70px;height:70px;left:55%;top:4%"></i></div><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s),app=$('#app');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const R={
+Mastermind:{t:'I',c:'Attack',d:'Each night, choose one player to eliminate. You learn which players were shielded or checked most often.'},
+Scrambler:{t:'I',c:'Support',d:'Each night, choose an Innocent. Their hint is inverted for that night.'},
+Radar:{t:'N',c:'Intel',d:'Each night you get a global hint about the Impostors.'},
+Witness:{t:'N',c:'Intel',d:'Each night, pick a player to learn their role category.'},
+Oracle:{t:'N',c:'Intel',d:'Each night, pick two players to learn if they are on the same team.'},
+Guardian:{t:'N',c:'Support',d:'Each night, shield one player from an attack.'},
+Civilian:{t:'N',c:'Civilian',d:'No special power. Listen, talk, and vote wisely.'}};
+const AC={Mastermind:['Choose a player to eliminate',1],Scrambler:['Choose an Innocent to scramble',1],Witness:['Choose a player to inspect',1],Oracle:['Choose two players to compare',2],Guardian:['Choose a player to shield',1],Radar:['Pick anyone to watch (no effect)',1],Civilian:['Pick anyone to watch (no effect)',1]};
+let S,names=[];try{names=JSON.parse(localStorage.names||'[]')}catch(e){}
+let cfg={off:[],imp:0};try{Object.assign(cfg,JSON.parse(localStorage.cfg||'{}'))}catch(e){}
+const saveC=()=>{try{localStorage.cfg=JSON.stringify(cfg)}catch(e){}};
+const save=()=>{try{localStorage.names=JSON.stringify(names)}catch(e){}};
+const al=()=>S.p.filter(x=>x.a),ims=()=>al().filter(x=>R[x.r].t=='I');
+const sh=a=>{a=[...a];for(let i=a.length;i>1;){let j=Math.random()*i--|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const rnd=a=>a[Math.random()*a.length|0];
+let busy=0;const buzz=()=>{try{navigator.vibrate(12)}catch(e){}};
+function view(h,b={},day,q){
+ busy=0;document.body.className=day?'day':'';document.querySelectorAll('.cf').forEach(e=>e.remove());
+ app.className=q?'q':'';app.innerHTML=h;scrollTo(0,0);
+ [...app.children].forEach((c,i)=>c.style.setProperty('--i',i));
+ for(const k in b)$('#'+k).onclick=()=>{buzz();if(k=='add')return b[k]();if(busy)return;busy=1;app.classList.add('out');setTimeout(()=>b[k](),200)}
+}
+function confetti(){for(let i=0;i<30;i++){const e=document.createElement('i');e.className='cf';e.style.cssText=`left:${Math.random()*100}%;animation-delay:${Math.random()*1.5}s;animation-duration:${2.5+Math.random()*2}s;background:${i%3?'var(--fg)':'#8795b8'}`;document.body.appendChild(e)}}
+function titleScreen(){
+ view(`<div class=sp></div><svg class=moon viewBox="0 0 120 120"><circle cx=60 cy=60 r=46 style="fill:var(--fg)"/><circle cx=84 cy=42 r=40 style="fill:var(--bg)"/><circle class=star cx=100 cy=24 r=4 style="fill:var(--fg)"/><circle class=star cx=16 cy=34 r=3 style="fill:var(--fg)"/><circle class=star cx=24 cy=100 r=4 style="fill:var(--fg)"/></svg>
+ <h1 class=logo>${[...'NIGHT SHIFT'].map((c,i)=>c==' '?'<br>':`<b style="--d:${i*55}ms">${c}</b>`).join('')}</h1>
+ <p class=c>Find the impostors before dawn.</p><div class=sp></div>
+ <button id=play class="main pulse">Play</button><button id=how>How to play</button><button id=rl>All roles</button><p class=c style="font-size:14px">Offline · pass the phone · 4 to 12 players</p>`,{play:()=>setup(),how,rl:roles});
+}
+function roles(){
+ const c=r=>`<div class=card><b>${r}</b><small>${R[r].c} role · ${R[r].d}</small></div>`;
+ view(`<button id=bk>‹ Back</button><h2>All roles</h2><p>Impostors</p>${['Mastermind','Scrambler'].map(c).join('')}<p>Innocents</p>${['Guardian','Witness','Oracle','Radar','Civilian'].map(c).join('')}<p class=c style="font-size:14px">Every role appears from 6 players. Smaller games use a random mix of the Innocent roles.</p>`,{bk:titleScreen});
+}
+function how(){
+ view(`<button id=bk>‹ Back</button><h2>How to play</h2>
+ <div class=card><b>Roles.</b> Everyone gets a secret role. Impostors hunt in the dark. Innocents use hints to find them.</div>
+ <div class=card><b>Night.</b> Pass the phone. Each player takes one secret action.</div>
+ <div class=card><b>Morning.</b> See who was eliminated, read your private report, then discuss out loud.</div>
+ <div class=card><b>Vote.</b> Everyone votes in secret. The most-voted player is out.</div>
+ <div class=card><b>Winning.</b> Innocents win when every Impostor is out. Impostors win when they equal the Innocents.</div>`,{bk:titleScreen});
+}
+const RD=['Mastermind','Scrambler','Guardian','Witness','Oracle','Radar'];
+function config(q){
+ const y=scrollY;
+ view(`<button id=bk>‹ Back</button><h2>Roles & impostors</h2>
+ <div class=card><b>Impostors</b><small>Auto scales with player count. Never more than half the table.</small><div class=chips>${['Auto',1,2,3,4].map(v=>`<button data-v=${v=='Auto'?0:v} class="${(cfg.imp||'Auto')==v?'sel':''}">${v}</button>`).join('')}</div></div>
+ <div class=card><b>Roles</b><small>Tap to add or remove a role. Every role appears from 6 players.</small>${RD.map(r=>`<div class=row style="margin-top:12px"><span><b>${r}</b><small>${R[r].d}</small></span>${r=='Mastermind'?'<small>Always on</small>':`<button data-r=${r} class="${cfg.off.includes(r)?'':'sel'}">${cfg.off.includes(r)?'Off':'On'}</button>`}</div>`).join('')}<div class=row style="margin-top:12px"><span><b>Civilian</b><small>${R.Civilian.d}</small></span><small>Always on</small></div></div>`,{bk:()=>setup()},0,q);
+ scrollTo(0,y);
+ app.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{buzz();cfg.imp=+b.dataset.v;saveC();config(1)});
+ app.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{buzz();const r=b.dataset.r,k=cfg.off.indexOf(r);k<0?cfg.off.push(r):cfg.off.splice(k,1);saveC();config(1)});
+}
+function setup(q){
+ view(`<div class=row><button id=bk>‹ Back</button><button id=cg>⚙ Roles & impostors</button></div><h2>Who's playing?</h2><p>Add 4 to 12 players · Impostors: ${cfg.imp||'Auto'}</p>
+ <div class=row><input id=nm placeholder="Player name" maxlength=14><button id=add class=main>Add</button></div>
+ <div class=card>${names.length?names.map((n,i)=>`<div class=row><span>${esc(n)}</span><button class=rm data-i=${i}>✕</button></div>`).join(''):'<p>No players yet.</p>'}</div>
+ <div class=sp></div><button id=st class=main ${names.length<4?'disabled':''}>Start game (${names.length})</button>`,{bk:titleScreen,cg:()=>config(),add:addN,st:start},0,q);
+ $('#nm').onkeydown=e=>e.key=='Enter'&&addN();
+ app.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{names.splice(b.dataset.i,1);save();setup(1)});
+}
+function addN(){const v=$('#nm').value.trim();if(v&&names.length<12&&!names.some(n=>n.toLowerCase()==v.toLowerCase())){names.push(v);save();setup(1);$('#nm').focus()}}
+function start(){
+ const n=names.length,ni=Math.min(cfg.imp||(n<6?1:n<10?2:3),Math.max(1,(n-1)>>1)),
+ ir=Array.from({length:ni},(_,i)=>i%2&&!cfg.off.includes('Scrambler')?'Scrambler':'Mastermind'),
+ inn=sh(['Guardian','Witness','Oracle','Radar']).filter(r=>!cfg.off.includes(r)).concat(Array(12).fill('Civilian')).slice(0,n-ni);
+ S={p:sh(ir.concat(inn)).map((r,i)=>({n:names[i],r,a:1})),rd:1,sc:{},ck:{}};rev(0);
+}
+function pass(name,sub,cb,day){view(`<div class=sp></div><p class=c>Pass the phone to</p><div class=big>${esc(name)}</div><p class=c>${sub}</p><div class=sp></div><button id=b class=main>I'm ${esc(name)}</button>`,{b:cb},day)}
+function rev(i){
+ if(i>=S.p.length)return night();
+ const p=S.p[i],imp=R[p.r].t=='I',m=S.p.filter(x=>x!==p&&R[x.r].t=='I').map(x=>esc(x.n+' ('+x.r+')'));
+ pass(p.n,'Only you should look at the screen.',()=>view(`<p class=c>${esc(p.n)}, you are</p><div class="big ${imp?'bad':'ok'}">${p.r}</div><p class=c>${imp?'Impostor team':'Innocent team'}</p><div class=card>${R[p.r].d}</div>${imp?`<div class=card>${m.length?'Fellow Impostors: '+m.join(', '):'You are the only Impostor.'}</div>`:''}<div class=sp></div><button id=b class=main>${i==S.p.length-1?'Hide and finish':'Hide and pass on'}</button>`,{b:()=>rev(i+1)}));
+}
+function picker(h,q,o,need,done,lab='Done',day){
+ let sel=[];const d=q=>{const y=scrollY;
+  view(`<h2>${h}</h2><p>${q}</p>${o.map(x=>`<button data-i="${x.i}" class="${sel.includes(x.i)?'sel':''}">${esc(x.n)}</button>`).join('')}<div class=sp></div><button id=b class=main ${sel.length==need?'':'disabled'}>${lab}</button>`,{b:()=>done(sel)},day,q);scrollTo(0,y);
+  app.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{buzz();const v=+b.dataset.i;sel=sel.includes(v)?sel.filter(z=>z!=v):need==1?[v]:sel.length<need?[...sel,v]:sel;d(1)})};d();
+}
+function night(){
+ S.o=sh(al().map(x=>S.p.indexOf(x)));S.k=0;S.A={};
+ view(`<div class=sp></div><svg class=moon viewBox="0 0 120 120"><circle cx=60 cy=60 r=46 style="fill:var(--fg)"/><circle cx=84 cy=42 r=40 style="fill:var(--bg)"/></svg>
+ <p class=c>${S.rd==1?'All roles have been handed out':'The vote is over'}</p><h1 class=c>Night ${S.rd} begins</h1>
+ <div class=card><b>The role missions start now.</b><small>The phone will call each player by name, one at a time. Do your mission in private, tap Done, and pass it on. Nobody speaks until morning.</small></div>
+ <div class=sp></div><button id=b class=main>Begin the night</button>`,{b:turn});
+}
+function turn(){
+ if(S.k>=S.o.length)return dawn();
+ const i=S.o[S.k],p=S.p[i],imp=R[p.r].t=='I';
+ pass(p.n,`Night ${S.rd} · turn ${S.k+1} of ${S.o.length}`,()=>view(`<div class=sp></div><p class=c>Night ${S.rd} · ${esc(p.n)}</p><h2 class=c>Now it's your role mission</h2><div class="big ${imp?'bad':''}">${p.r}</div><div class=card><b>Your mission:</b> ${AC[p.r][0]}.</div><div class=sp></div><button id=b class=main>Begin mission</button>`,{b:()=>{
+  const [q,need]=AC[p.r];
+  let o=al().filter(x=>p.r=='Guardian'||(x!==p&&(p.r=='Mastermind'?R[x.r].t!='I':p.r=='Scrambler'?R[x.r].t=='N':1)));
+  picker(p.r,q,o.map(x=>({i:S.p.indexOf(x),n:x.n})),Math.min(need,o.length),s=>{S.A[i]=s;S.k++;turn()});
+ }}));
+}
+function dawn(){
+ const P=S.p,A=S.A,tm=i=>R[P[i].r].t,cat=i=>R[P[i].r].c,by=r=>S.o.filter(i=>P[i].r==r);
+ const scr=new Set(by('Scrambler').map(i=>A[i][0])),shd=by('Guardian').map(i=>A[i][0]),kills=by('Mastermind').map(i=>A[i][0]),
+ dead=[...new Set(kills)].filter(t=>!shd.includes(t)),chk=[...by('Witness'),...by('Oracle')].flatMap(i=>A[i]),ic=ims().length;
+ const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1])[0];
+ S.rep={};
+ S.o.forEach(i=>{if(dead.includes(i))return;const x=P[i],f=scr.has(i);let t='You slept soundly. Nothing to report.';
+  if(x.r=='Radar'){
+   if(Math.random()<.5){let c=ic;c=f?(c>1?c+rnd([-1,1]):c+1):c;t=`There are currently ${c} Impostor${c==1?'':'s'} alive.`}
+   else{const all=S.o.map((_,k)=>k+1),im=all.filter(k=>tm(S.o[k-1])=='I'),ni=all.filter(k=>!im.includes(k));let a,b;
+    if(f&&ni.length>1)[a,b]=sh(ni);else{a=rnd(im);b=rnd(all.filter(k=>k!=a))}
+    [a,b]=[a,b].sort((u,v)=>u-v);t=`An Impostor acted in turn ${a} or ${b} tonight.`}}
+  if(x.r=='Witness'){const s=A[i][0];let c=cat(s);if(f)c=rnd(['Attack','Support','Intel','Civilian'].filter(z=>z!=c));t=`${P[s].n} holds ${/^[AI]/.test(c)?'an':'a'} ${c} role.`}
+  if(x.r=='Oracle'){const [a,b]=A[i];let s=tm(a)==tm(b);if(f)s=!s;t=`${P[a].n} and ${P[b].n} are on ${s?'the same team':'different teams'}.`}
+  if(x.r=='Guardian')t=kills.includes(A[i][0])?'Your shield stopped an attack!':'No one attacked your target tonight.';
+  if(x.r=='Scrambler')t=`You scrambled ${P[A[i][0]].n}'s hint.`;
+  if(x.r=='Mastermind'){const s=top(S.sc),c=top(S.ck);t=`Your attack ${dead.includes(A[i][0])?'succeeded':'was blocked'}. `+(s||c?`Most shielded so far: ${s?s[0]+' ('+s[1]+'×)':'nobody'}. Most checked so far: ${c?c[0]+' ('+c[1]+'×)':'nobody'}.`:'No shield or check data yet.')}
+  S.rep[i]=t});
+ shd.forEach(t=>S.sc[P[t].n]=(S.sc[P[t].n]||0)+1);chk.forEach(t=>S.ck[P[t].n]=(S.ck[P[t].n]||0)+1);
+ dead.forEach(t=>P[t].a=0);S.dead=dead.map(t=>P[t].n);
+ view(`<div class=sp></div><p class=c>Morning · day ${S.rd}</p><h2 class=c>${S.dead.length?S.dead.map(esc).join(' and ')+(S.dead.length>1?' were':' was')+' eliminated last night.':'No one died last night.'}</h2><div class=sp></div><button id=b class=main>Continue</button>`,{b:()=>win()||rep(0)},1);
+}
+function win(){const i=ims().length,n=al().length-i;if(i&&i<n)return 0;end(i?'Impostors':'Innocents');return 1}
+function rep(k){
+ const L=al();if(k>=L.length)return talk();
+ pass(L[k].n,'Read your private night report.',()=>view(`<p class=c>${esc(L[k].n)}, your night report</p><div class=card><h2>${esc(S.rep[S.p.indexOf(L[k])])}</h2></div><p>Hints can be scrambled. Share them or hide them as you see fit.</p><div class=sp></div><button id=b class=main>Hide and pass on</button>`,{b:()=>rep(k+1)},1),1);
+}
+function talk(){view(`<h2>Discussion</h2><p>Talk it out loud. Share hints, accuse, and defend yourself. Then vote in secret.</p><div class=card>Alive: ${al().map(x=>esc(x.n)).join(', ')}</div><div class=sp></div><button id=b class=main>Start voting</button>`,{b:()=>vote(0,{})},1)}
+function vote(k,t){
+ const L=al();if(k>=L.length)return tally(t);
+ pass(L[k].n,'Cast your secret vote.',()=>picker('Vote','Who should be voted out?',[...L.filter(x=>x!==L[k]).map(x=>({i:S.p.indexOf(x),n:x.n})),{i:-1,n:'Skip vote'}],1,s=>{t[s[0]]=(t[s[0]]||0)+1;vote(k+1,t)},'Cast vote',1),1);
+}
+function tally(t){
+ const e=Object.entries(t).sort((a,b)=>b[1]-a[1]),tie=e.length>1&&e[0][1]==e[1][1],out=!tie&&e[0]&&+e[0][0]>=0?+e[0][0]:-1;
+ let msg='No one was voted out.';if(out>=0){S.p[out].a=0;msg=`${esc(S.p[out].n)} was voted out. They were the ${S.p[out].r}.`}
+ view(`<h2>${msg}</h2><div class=card>${e.map(([i,c])=>`<div class=row><span>${i>=0?esc(S.p[i].n):'Skip'}</span><span>${c}</span></div>`).join('')}</div><div class=sp></div><button id=b class=main>Continue</button>`,{b:()=>{if(!win()){S.rd++;night()}}},1);
+}
+function end(w){
+ view(`<h1 class="${w=='Impostors'?'bad':'ok'}">${w} win!</h1><div class=card>${S.p.map(x=>`<div class=row><span>${esc(x.n)}${x.a?'':' ✝'}</span><span class="${R[x.r].t=='I'?'bad':''}">${x.r}</span></div>`).join('')}</div><div class=sp></div><button id=a class=main>Play again</button><button id=n>Change players</button>`,{a:start,n:()=>setup()});confetti();
+}
+titleScreen();
+</script></body></html>
